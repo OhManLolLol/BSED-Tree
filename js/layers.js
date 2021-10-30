@@ -15,7 +15,11 @@ addLayer("r", {
     exponent: 0.5, // Prestige currency exponent
     gainMult() { // Calculate the multiplier for main currency from bonuses
         mult = new Decimal(1)
+        let smult = player.s.points.mul(2)
+        if (!smult.gte(1)) smult = 1
+
         if (hasUpgrade('r', 15)) mult = mult.times(2)
+        if (hasMilestone('s', 0)) mult = mult.times(smult)
         return mult
     },
     gainExp() { // Calculate the exponent on main currency from bonuses
@@ -36,6 +40,7 @@ addLayer("r", {
             title: "Production Doubler",
             description: "Double your cash gain.",
             cost: new Decimal(1),
+            canAfford() {return hasUpgrade("r", 11)}
         },
         13: {
             title: "Production Enhancer",
@@ -59,6 +64,49 @@ addLayer("r", {
             title: "Birth of Enlightenment",
             description: "Double Rebirth gain.",
             cost: new Decimal(10),
+        },
+    },
+})
+addLayer("s", {
+    name: "Stone", // This is optional, only used in a few places, If absent it just uses the layer id.
+    symbol: "S", // This appears on the layer's node. Default is the id with the first letter capitalized
+    position: 0, // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
+    startData() { return {
+        unlocked: false,
+		points: new Decimal(0),
+    }},
+    color: "#D3D3D3",
+    requires: new Decimal(100), // Can be a function that takes requirement increases into account
+    resource: "Stone", // Name of prestige currency
+    baseResource: "Rebirths", // Name of resource prestige is based on
+    baseAmount() {return player.r.points}, // Get the current amount of baseResource
+    type: "static", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
+    exponent: 1.5, // Prestige currency exponent
+    base: 4,
+    gainMult() { // Calculate the multiplier for main currency from bonuses
+        mult = new Decimal(1)
+        return mult
+    },
+    gainExp() { // Calculate the exponent on main currency from bonuses
+        return new Decimal(1)
+    },
+    row: 1, // Row the layer is in on the tree (0 is the first row)
+    hotkeys: [
+        {key: "s", description: "S: Reset for stone", onPress(){if (canReset(this.layer)) doReset(this.layer)}},
+    ],
+    layerShown(){return true},
+    upgrades: {
+        11: {
+            title: "Placeholder",
+            description: "Placeholder",
+            cost: new Decimal(1),
+        },
+    },
+    milestones: {
+        0: {
+            requirementDescription: "1 Stone",
+            effectDescription: "Stone multiplies Rebirths by x2",
+            done() { return player[this.layer].points.gte(1) }
         },
     },
 })
