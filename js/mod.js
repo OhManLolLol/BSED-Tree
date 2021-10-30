@@ -1,13 +1,13 @@
 let modInfo = {
 	name: "BSED Tree",
 	id: "mymodlol",
-	author: "OhMan",
+	author: "OhMan, original game made by Quantack",
 	pointsName: "cash",
 	modFiles: ["layers.js", "tree.js"],
 
 	discordName: "",
 	discordLink: "",
-	initialStartPoints: new Decimal (10), // Used for hard resets and new players
+	initialStartPoints: new Decimal (1), // Used for hard resets and new players
 	offlineLimit: 0,  // In hours
 }
 
@@ -42,10 +42,22 @@ function getPointGen() {
 	if(!canGenPoints())
 		return new Decimal(0)
 	let gain = new Decimal(1)
+	// secrets first
+	if (hasAchievement('se', 11)) gain = gain.times(achievementEffect('se', 11))
+	if (hasAchievement('se', 12)) gain = gain.times(achievementEffect('se', 12))
+
+	// upgrades
 	if (hasUpgrade('r', 11)) gain = gain.times(1.5)
 	if (hasUpgrade('r', 12)) gain = gain.times(2)
 	if (hasUpgrade('r', 13)) gain = gain.times(upgradeEffect('r', 13))
 	if (hasUpgrade('r', 14)) gain = gain.times(upgradeEffect('r', 14))
+	if (hasUpgrade('r', 23)) gain = gain.pow(1.07)
+
+	// challenge buffs
+	if (hasChallenge('s', 11)) gain = gain.mul(challengeEffect('s', 11))
+
+	// challenge nerfs
+	if (inChallenge('s', 11)) gain = gain.pow(0.5)
 	return gain
 }
 
