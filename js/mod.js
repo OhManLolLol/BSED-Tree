@@ -2,13 +2,13 @@ let modInfo = {
 	name: "BSED Tree",
 	id: "mymodlol",
 	author: "OhMan",
-	pointsName: "Cash",
+	pointsName: "cash",
 	modFiles: ["layers.js", "tree.js"],
 
 	discordName: "",
 	discordLink: "",
 	initialStartPoints: new Decimal (10), // Used for hard resets and new players
-	offlineLimit: 1,  // In hours
+	offlineLimit: 0,  // In hours
 }
 
 // Set your version in num and name
@@ -41,8 +41,11 @@ function canGenPoints(){
 function getPointGen() {
 	if(!canGenPoints())
 		return new Decimal(0)
-
 	let gain = new Decimal(1)
+	if (hasUpgrade('r', 11)) gain = gain.times(1.5)
+	if (hasUpgrade('r', 12)) gain = gain.times(2)
+	if (hasUpgrade('r', 13)) gain = gain.times(upgradeEffect('r', 13))
+	if (hasUpgrade('r', 14)) gain = gain.times(upgradeEffect('r', 14))
 	return gain
 }
 
