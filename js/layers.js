@@ -24,6 +24,7 @@ addLayer("r", {
 
         // achievements
         if (hasAchievement('se', 13)) mult = mult.times(achievementEffect('se', 13))
+        if (hasAchievement('se', 14)) mult = mult.times(achievementEffect('se', 14).rboost)
 
         // milestones
         if (hasMilestone('s', 0)) mult = mult.times(smult)
@@ -38,6 +39,9 @@ addLayer("r", {
     },
     gainExp() { // Calculate the exponent on main currency from bonuses
         return new Decimal(1)
+    },
+    passiveGeneration() {
+        if (hasMilestone("w", 1)) return 1
     },
     row: 0, // Row the layer is in on the tree (0 is the first row)
     hotkeys: [
@@ -139,6 +143,7 @@ addLayer("s", {
     }},
     color: "#A9A9A9",
     branches: ["r"],
+    canBuyMax() {return hasMilestone("w", 0)},
     requires: new Decimal(75), // Can be a function that takes requirement increases into account
     resource: "Stone", // Name of prestige currency
     baseResource: "Rebirths", // Name of resource prestige is based on
@@ -146,7 +151,11 @@ addLayer("s", {
     type: "static", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
     exponent: 1.5, // Prestige currency exponent
     base: 3.5,
-    gainMult() { // Calculate the multiplier for main currency from bonuses
+    gainMult() { // division on static, not multiply
+        mult = new Decimal(1)
+        return mult
+    },
+    directMult() { // the good boi
         mult = new Decimal(1)
         return mult
     },
@@ -257,6 +266,7 @@ addLayer("g", {
     gainMult() { // Calculate the multiplier for main currency from bonuses
         mult = new Decimal(1)
         if (hasUpgrade("s", 13)) mult = mult.times(5)
+        if (hasAchievement("se", 14)) mult = mult.times(achievementEffect("se", 14).gemboost)
         return mult
     },
     gainExp() { // Calculate the exponent on main currency from bonuses
@@ -308,6 +318,62 @@ addLayer("g", {
 
 })
 
+addLayer("w", {
+    name: "White Gems", // This is optional, only used in a few places, If absent it just uses the layer id.
+    symbol: "WG", // This appears on the layer's node. Default is the id with the first letter capitalized
+    position: 0, // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
+    startData() { return {
+        unlocked: false,
+		points: new Decimal(0),
+    }},
+    color: "#FFFFFF",
+    branches: ["s"],
+    requires: new Decimal(11), // Can be a function that takes requirement increases into account
+    resource: "White Gems", // Name of prestige currency
+    baseResource: "Stone", // Name of resource prestige is based on
+    roundUpCost: true,
+    baseAmount() {return player.s.points}, // Get the current amount of baseResource
+    type: "normal", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
+    exponent: 0.25, // Prestige currency exponent
+    gainMult() { // Calculate the multiplier for main currency from bonuses
+        mult = new Decimal(1)
+
+        return mult
+    },
+    gainExp() { // Calculate the exponent on main currency from bonuses
+        return new Decimal(1)
+    },
+    row: 2, // Row the layer is in on the tree (0 is the first row)
+    hotkeys: [
+        {key: "w", description: "W: Reset for white gems", onPress(){if (canReset(this.layer)) doReset(this.layer)}},
+    ],
+    upgrades: {
+        11: {
+            title: "Stronger Material",
+            description: "Divide stone costs by 2",
+            cost: new Decimal(2),
+        },
+        12: {
+            title: "Expanding Discoveries",
+            description: "Unlock 4 more stone upgrades",
+            cost: new Decimal(3),
+        },
+    },
+    milestones: {
+        0: {
+            requirementDescription: "1 White Gem",
+            effectDescription: "White gems multiply Rebirths by x5 (not yet), and you can buy max Stone",
+            done() { return player[this.layer].points.gte(1) }
+        },
+        1: {
+            requirementDescription: "2 White Gems",
+            effectDescription: "Gain 100% of pending Rebirths per second",
+            done() { return player[this.layer].points.gte(2) }
+        },
+    },
+    layerShown(){return hasMilestone("s", 2) || player[this.layer].points.gte(1)},
+})
+
 // secrets
 
 addLayer("se", {
@@ -346,8 +412,21 @@ addLayer("se", {
             done() {return player.r.points.gte(12500)},
             effect() {return new Decimal(1.5)},
             goalTooltip: "12,500 Rebirths", // Shows when achievement is not completed
-            doneTooltip: "1.5x Rebirths / 12,500", // Showed when the achievement is completed
+            doneTooltip: "1.5x Rebirths / 12,500 Rebirths", // Showed when the achievement is completed
             textStyle: {'color': '#ADD8E6'},
+        },
+        14: {
+            name: "Petrol",
+            done() {return player.s.points.gte(69)},
+            effect() {
+                let effects = {}
+                effects.gemboost = new Decimal(420)
+                effects.rboost = new Decimal(7)
+                return effects
+            },
+            goalTooltip: "69 Stone", // Shows when achievement is not completed
+            doneTooltip: "420x Gems & 7x Rebirths / 60 Stone", // Showed when the achievement is completed
+            textStyle: {'color': '#00008b'},
         },
     },
 },
