@@ -16,7 +16,9 @@ addLayer("r", {
     gainMult() { // Calculate the multiplier for main currency from bonuses
         mult = new Decimal(1)
         let smult = player.s.points.mul(1.5)
+        let wgmult = player.w.points.mul(5)
         if (!smult.gte(1)) smult = 1
+        if (!wgmult.gte(1)) wgmult = 1
 
         // upgrades
         if (hasUpgrade('r', 15)) mult = mult.times(1.75)
@@ -28,6 +30,7 @@ addLayer("r", {
 
         // milestones
         if (hasMilestone('s', 0)) mult = mult.times(smult)
+        if (hasMilestone('w', 0)) mult = mult.times(wgmult)
 
         // challenges
         if (hasChallenge('s', 12)) mult = mult.pow(challengeEffect('s', 12).rboost)
@@ -48,6 +51,7 @@ addLayer("r", {
         {key: "r", description: "R: Reset for rebirths", onPress(){if (canReset(this.layer)) doReset(this.layer)}},
     ],
     layerShown(){return true},
+    autoUpgrade(){return hasMilestone('w', 3)},
     upgrades: {
         11: {
             title: "Production Starter",
@@ -110,7 +114,7 @@ addLayer("r", {
         },
         23: {
             title: "Life Force",
-            description: "Point gain is boosted ^1.07",
+            description: "Cash gain is boosted ^1.07",
             cost: new Decimal(5000),
             unlocked() {return hasUpgrade("s", 11)},
         },
@@ -153,6 +157,10 @@ addLayer("s", {
     base: 3.5,
     gainMult() { // division on static, not multiply
         mult = new Decimal(1)
+        
+        // upgrades
+        if (hasUpgrade('w', 11)) mult = mult.div(2)
+
         return mult
     },
     directMult() { // the good boi
@@ -168,6 +176,26 @@ addLayer("s", {
     ],
     layerShown(){return true},
     resetsNothing(){return hasMilestone('s', 2)},
+    doReset(layer){
+        if(layers[layer].row <= layers[this.layer].row || layers[layer].row == "side")return;
+        let keep = []
+            
+        if(hasMilestone('w',2)) keep.push("challenges")
+
+        layerDataReset(this.layer, keep)
+        /*
+          that giant if does 2 things
+          first it gets the resetting layer's row and makes sure
+          it's higher than the current layer's row
+      
+          second it gets the resetting layer's row again
+          and checks if it's a side layer
+          if either of those are true then it returns
+          nothing which ends the function
+      
+          the other line resets the layer
+        */
+    },
     upgrades: {
         11: {
             title: "Miner's Benefit",
@@ -188,6 +216,12 @@ addLayer("s", {
             title: "Miner's Payment",
             description: "Unlock 2 more rebirth upgrades.",
             cost: new Decimal(7),
+        },
+        21: {
+            title: "Hidden in Plain Sight",
+            description: "Unlock a new row 2 layer",
+            unlocked() {return hasUpgrade('w', 12)},
+            cost: new Decimal(15),
         },
     },
     milestones: {
@@ -246,6 +280,216 @@ addLayer("s", {
             rewardDescription: "Rebirth gain brought to ^1.025, Cash gain *25",
         },
     }, 
+})
+
+addLayer("f", {
+    name: "Fountain", // This is optional, only used in a few places, If absent it just uses the layer id.
+    symbol: "F", // This appears on the layer's node. Default is the id with the first letter capitalized
+    position: 1, // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
+    startData() { return {
+        unlocked: false,
+		points: new Decimal(0),
+        ipointgen: new Decimal(0),
+        ipoints: new Decimal(0),
+    }},
+    color: "#778899",
+    branches: ["r", "w"],
+    requires: new Decimal(1e31), // Can be a function that takes requirement increases into account
+    resource: "Fountains", // Name of prestige currency
+    baseResource: "Rebirths", // Name of resource prestige is based on
+    baseAmount() {return player.r.points}, // Get the current amount of baseResource
+    type: "static", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
+    exponent: 2.25, // Prestige currency exponent
+    base: 1e25,
+    gainMult() { // division on static, not multiply
+        mult = new Decimal(1)
+        return mult
+    },
+    directMult() { // the good boi
+        mult = new Decimal(1)
+        return mult
+    },
+    gainExp() { // Calculate the exponent on main currency from bonuses
+        return new Decimal(1)
+    },
+    update(ticc) {
+        let base = new Decimal(1.5)
+        let ipointgen = base.pow(player[this.layer].points)
+
+        // buyables
+        let pointBoost = buyableEffect("f", 11)
+	    if (getBuyableAmount("f", 11).gte(1)) ipointgen = ipointgen.mul(pointBoost.first)
+
+        // upgrades
+        if (hasUpgrade('f', 13)) ipointgen = ipointgen.mul(upgradeEffect('f', 13))
+
+        if (player[this.layer].points.gte(1)) {
+            player[this.layer].ipointgen = ipointgen
+        } else {
+            player[this.layer].ipointgen = new Decimal(0)
+        }
+
+        if (player[this.layer].points.gte(1)) player[this.layer].ipoints = player[this.layer].ipoints.add(ipointgen)
+    },
+    row: 1, // Row the layer is in on the tree (0 is the first row)
+    hotkeys: [
+        {key: "f", description: "F: Reset for fountains", onPress(){if (canReset(this.layer)) doReset(this.layer)}},
+    ],
+    upgrades: {
+        11: {
+            title: "Fountain of Immortality",
+            description: "Unlock the first buyable.",
+            cost: new Decimal(1),
+        },
+        12: {
+            title: "The Hidden World",
+            description: "Unlock the second buyable.",
+            cost: new Decimal(1e5),
+            currencyDisplayName: "Immortallity Points",
+            currencyInternalName: "ipoints",
+            currencyLayer: "f"
+            /* canAfford() { return player[this.layer].ipoints.gte(1e5) },
+            pay() {
+                let cost = tmp[this.layer].upgrades[this.id].cost
+                player[this.layer].ipoints = player[this.layer].ipoints.sub(cost)
+            },
+            
+            */
+        },
+        13: {
+            title: "Wealth's Unknown Power",
+            description: "Cash boosts Immortallity Point gain",
+            cost: new Decimal(2e5),
+            effect() {
+                let cashBoost = player.points.pow(0.085).sqrt()
+                return cashBoost
+            },
+            effectDisplay() { return format(upgradeEffect(this.layer, this.id))+"x" }, // Add formatting to the effect
+            currencyDisplayName: "Immortallity Points",
+            currencyInternalName: "ipoints",
+            currencyLayer: "f"
+            /* canAfford() { return player[this.layer].ipoints.gte(1e5) },
+            pay() {
+                let cost = tmp[this.layer].upgrades[this.id].cost
+                player[this.layer].ipoints = player[this.layer].ipoints.sub(cost)
+            },
+            
+            */
+        },
+    },
+    buyables: {
+        showRespec: false,
+        11: {
+            title: "Immortality's Power", // Optional, displayed at the top in a larger font
+            cost(x) { // cost for buying xth buyable, can be an object if there are multiple currencies
+                if (x.gte(500)) x = x.pow(6).div(12)
+                let cost = Decimal.pow(1.25, x.pow(1.65).mul(3)).add(1499)
+                return cost.floor()
+            },
+            effect(x) { // Effects of owning x of the items, x is a decimal
+                let eff = {}
+                eff.first = Decimal.pow(2,x)
+                return eff;
+            },
+            display() { // Everything else displayed in the buyable button after the title
+                let data = tmp[this.layer].buyables[this.id]
+                return "Cost: " + format(data.cost) + " Immortality Points\n\
+                Amount: " + player[this.layer].buyables[this.id] + "\n\
+                Multiplies Immortality Point gain by " + format(data.effect.first) + "x"
+            },
+            unlocked() { return hasUpgrade('f', 11) }, 
+            canAfford() {
+                return player[this.layer].ipoints.gte(tmp[this.layer].buyables[this.id].cost)},
+            buy() { 
+                cost = tmp[this.layer].buyables[this.id].cost
+                player[this.layer].ipoints = player[this.layer].ipoints.sub(cost)	
+                player[this.layer].buyables[this.id] = player[this.layer].buyables[this.id].add(1)
+                player[this.layer].spentOnBuyables = player[this.layer].spentOnBuyables.add(cost) // This is a built-in system that you can use for respeccing but it only works with a single Decimal value
+            },
+            buyMax() {}, // You'll have to handle this yourself if you want
+            style: {'height':'222px'},
+        },
+        12: {
+            title: "Immortality's Wealth", // Optional, displayed at the top in a larger font
+            cost(x) { // cost for buying xth buyable, can be an object if there are multiple currencies
+                if (x.gte(500)) x = x.pow(6).div(12)
+                let cost = Decimal.pow(1.35, x.pow(1.7).mul(4)).add(24999)
+                return cost.floor()
+            },
+            effect(x) { // Effects of owning x of the items, x is a decimal
+                let eff = {}
+                eff.first = player[this.layer].ipoints.sqrt().sqrt().times(x.pow(4))
+                return eff;
+            },
+            display() { // Everything else displayed in the buyable button after the title
+                let data = tmp[this.layer].buyables[this.id]
+                return "Cost: " + format(data.cost) + " Immortality Points\n\
+                Amount: " + player[this.layer].buyables[this.id] + "\n\
+                Multiplies Cash base by " + format(data.effect.first) + "x"
+            },
+            unlocked() { return hasUpgrade('f', 12) }, 
+            canAfford() {
+                return player[this.layer].ipoints.gte(tmp[this.layer].buyables[this.id].cost)},
+            buy() { 
+                cost = tmp[this.layer].buyables[this.id].cost
+                player[this.layer].ipoints = player[this.layer].ipoints.sub(cost)	
+                player[this.layer].buyables[this.id] = player[this.layer].buyables[this.id].add(1)
+                player[this.layer].spentOnBuyables = player[this.layer].spentOnBuyables.add(cost) // This is a built-in system that you can use for respeccing but it only works with a single Decimal value
+            },
+            buyMax() {}, // You'll have to handle this yourself if you want
+            style: {'height':'222px'},
+        },
+    },
+
+    tabFormat: {
+        "Upgrades": {
+            content: [
+                "main-display",
+                ["display-text",
+                     function() { 
+                     return 'Your fountains are generating ' + format(player[this.layer].ipointgen) + ' Immortallity Points per tick'
+                }],
+                ["display-text",
+                     function() { 
+                     return 'You have a total of ' + format(player[this.layer].ipoints) + ' Immortallity Points'
+                }],
+                ["display-text",
+                     function() { 
+                     return 'Immortality Points multiply Cash Gain by ' + format(player[this.layer].ipoints.pow(1/4)) + 'x'
+                }],
+                "blank",
+                "prestige-button",
+                "blank",
+                "blank",
+                "upgrades"
+            ]
+        },
+        "Buyables": {
+            content: [
+                "main-display",
+                ["display-text",
+                     function() { 
+                     return 'Your fountains are generating ' + format(player[this.layer].ipointgen) + ' Immortallity Points per tick'
+                }],
+                ["display-text",
+                     function() { 
+                     return 'You have a total of ' + format(player[this.layer].ipoints) + ' Immortallity Points'
+                }],
+                ["display-text",
+                     function() { 
+                     return 'Immortality Points multiply Cash Gain by ' + format(player[this.layer].ipoints.pow(1/4)) + 'x'
+                }],
+                "blank",
+                "prestige-button",
+                "blank",
+                "blank",
+                "blank",
+                "blank",
+                "buyables"
+            ]
+        },
+    },
+    layerShown(){return hasUpgrade("s", 21)},
 })
 
 addLayer("g", {
@@ -315,7 +559,6 @@ addLayer("g", {
             purchaseLimit: new Decimal(5),
         },
     },
-
 })
 
 addLayer("w", {
@@ -362,7 +605,7 @@ addLayer("w", {
     milestones: {
         0: {
             requirementDescription: "1 White Gem",
-            effectDescription: "White gems multiply Rebirths by x5 (not yet), and you can buy max Stone",
+            effectDescription: "White gems multiply Rebirths by x5, and you can buy max Stone",
             done() { return player[this.layer].points.gte(1) }
         },
         1: {
@@ -370,8 +613,18 @@ addLayer("w", {
             effectDescription: "Gain 100% of pending Rebirths per second",
             done() { return player[this.layer].points.gte(2) }
         },
+        2: {
+            requirementDescription: "3 White Gems",
+            effectDescription: "Keep Cave Challenge completions on all resets",
+            done() { return player[this.layer].points.gte(3) }
+        },
+        3: {
+            requirementDescription: "4 White Gems",
+            effectDescription: "Automatically buy Rebirth Upgrades",
+            done() { return player[this.layer].points.gte(4) }
+        },
     },
-    layerShown(){return hasMilestone("s", 2) || player[this.layer].points.gte(1)},
+    layerShown(){return hasMilestone("s", 2) || player[this.layer].points.gte(1) || player[this.layer].unlocked},
 })
 
 // secrets

@@ -45,8 +45,10 @@ function getPointGen() {
 
 	// base stuff
 	let gemBoost = buyableEffect("g", 11)
+	let fBoost = buyableEffect("f", 12)
 	if (getBuyableAmount("g", 11).gte(1)) gain = gain.add(gemBoost.first)
 	if (hasUpgrade('r', 25)) gain = gain.add(upgradeEffect('r', 25))
+	if (getBuyableAmount("f", 12).gte(1)) gain = gain.mul(fBoost.first)
 
 	// secrets first
 	if (hasAchievement('se', 11)) gain = gain.times(achievementEffect('se', 11))
@@ -65,6 +67,9 @@ function getPointGen() {
 	// challenge buffs
 	if (hasChallenge('s', 11)) gain = gain.mul(challengeEffect('s', 11))
 	if (hasChallenge('s', 12)) gain = gain.mul(challengeEffect('s', 12).cboost)
+
+	// other layer stuff
+	if (player.f.ipoints.gte(1)) gain = gain.mul(player.f.ipoints.pow(1/4))
 
 	// challenge nerfs
 	if (inChallenge('s', 11)) gain = gain.pow(0.5)
